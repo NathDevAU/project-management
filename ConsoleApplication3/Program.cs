@@ -28,6 +28,11 @@ namespace MyApp
             prj.AddRelation(D, F);
             Console.ReadKey();
         }
+
+        static public void CPU_Count(Project project)
+        {
+            // jopa
+        }
     }
 
     class Project
