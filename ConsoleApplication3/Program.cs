@@ -10,7 +10,7 @@ namespace MyApp
         static void Main(string[] args)
         {
             Project prj = new Project();
-
+            // mock graph
             Activity A = prj.AddActivity("A", 3, 5);
             Activity B = prj.AddActivity("B", 5, 7);
             Activity C = prj.AddActivity("C", 2, 5);
@@ -18,7 +18,6 @@ namespace MyApp
             Activity E = prj.AddActivity("E", 9, 10);
             Activity F = prj.AddActivity("F", 10, 10);
             Activity G = prj.AddActivity("G", 5, 4);
-
             prj.AddRelation(A, B);
             prj.AddRelation(B, C);
             prj.AddRelation(A, D);
@@ -27,63 +26,6 @@ namespace MyApp
             prj.AddRelation(E, G);
             prj.AddRelation(G, F);
             prj.AddRelation(D, F);
-
-            /* for another test
-            Activity A = prj.AddActivity("A", 5, 5);
-            Activity B = prj.AddActivity("B", 5, 7);
-            Activity C = prj.AddActivity("C", 3, 5);
-            Activity D = prj.AddActivity("D", 3, 8);
-
-            prj.AddRelation(A, B);
-            prj.AddRelation(C, B);
-            prj.AddRelation(A, D);
-            */
-            /* for AnyCPM
-            Activity A = prj.AddActivity("A", 3, 5);
-            Activity B = prj.AddActivity("B", 6, 7);
-            Activity C = prj.AddActivity("C", 6, 5);
-            Activity D = prj.AddActivity("D", 3, 8);
-
-            prj.AddRelation(A, B);
-            prj.AddRelation(C, D);
-            prj.AddRelation(A, D);
-            */
-            List<Activity> lst = prj.TopoSort();
-
-            Console.WriteLine("Toposort:");
-            foreach (Activity a in lst)
-                Console.Write(a.Name);
-            Console.WriteLine();
-            //prj.CritPath(lst);
-            Console.WriteLine("AnyCPM:\n" + prj.AnyCPM(prj.CritPath(lst)));
-            prj.SLK(lst);
-            prj.FSLK(lst);
-            prj.countMTS();
-
-            foreach (Activity a in lst)
-            {
-                Console.WriteLine("//Name: {0},\n[EST: {1}, EET: {2}, LST: {3}, LET: {4}, SLK: {5}, FSLK: {6}, MTS: {7}, Duration: {8}]", a.Name, a.EST, a.EET, a.LST, a.LET, a.SLK, a.FSLK, a.MTS, a.Duration);
-            }
-            Console.WriteLine();
-            Console.WriteLine("Total number of links: {0}", prj.Relations.Count());
-            Console.WriteLine("NC: " + prj.NC());
-            Console.WriteLine("Cost: " + prj.Cost());
-            //Console.WriteLine("the full number of A's successors is: "+prj.MTS(A));
-            /////////////////////////////////////////////////////
-            /*
-            prj.DelRelation(A, D);
-            //prj.DelActivity(C);
-            List<Activity> dd = prj.TopoSort();
-
-            foreach (Activity a in dd)
-            {
-                Console.WriteLine("Name: {0}, EST: {1}, EET: {2}, LST: {3}, LET: {4}, Duration: {5}", a.Name, a.EST, a.EET, a.LST, a.LET, a.Duration);
-            }
-            Console.WriteLine();
-            Console.WriteLine("Total number of links: {0}", prj.Relations.Count());
-            Console.WriteLine("NC: " + prj.NC());
-            Console.WriteLine("Cost: " + prj.Cost());
-            */
             Console.ReadKey();
         }
     }
