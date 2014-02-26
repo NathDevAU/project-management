@@ -28,7 +28,13 @@ namespace MyApp
             prj.AddRelation(D, F);
             Console.ReadKey();
         }
+
+        static public void CPM_COUNT(Project project)
+        {
+
+        }
     }
+
 
     class Project
     {
