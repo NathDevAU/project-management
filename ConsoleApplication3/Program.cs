@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace MyApp
+namespace PMApp
 {
     class Program
     {
