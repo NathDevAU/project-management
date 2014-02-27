@@ -59,10 +59,12 @@ namespace MyApp
                 minDuration = false;
             }
 
-            
+
+            double duration = toposorted[1][toposorted.Count - 1].EET;
+            List<Activity> optimisedActivities = toposorted[1];
+
             while (true)
             {
-                double duration = toposorted[1][toposorted.Count - 1].EET;
                 Console.WriteLine("Are {0} days acceptable for the project? Enter Y/YES or N/No...", duration);
                 yno = Console.ReadLine();
 
@@ -70,12 +72,11 @@ namespace MyApp
                 {
                     Console.WriteLine("=====Total result:=====");
                     Console.WriteLine("Total duration of the project: {0}", duration);
-                    toConsole(toposorted[1]);
+                    toConsole(optimisedActivities);
                     break;
                 }
                 else if ((yno == "N") || (yno == "No"))
                 {
-                    double requiredDuration = 0;
                     while (true)
                     {
                         Console.WriteLine("Please enter a required duration: ");
@@ -86,20 +87,17 @@ namespace MyApp
                         }
                         else if (reqDuration == limDuration)
                         {
-                            requiredDuration = reqDuration;
-                            Console.WriteLine("=====Total result:=====");
-                            Console.WriteLine("Total duration of the project: {0}", reqDuration);
-                            toConsole(toposorted[0]);
+                            optimisedActivities = toposorted[0];
+                            duration = limDuration;
                             break;
                         }
                         else
                         {
-                            List<Activity> optimizedActivities = optimizeProjectDuration(toposorted[1]);
+                            optimisedActivities = optimizeProjectDuration(toposorted[1]);
+                            duration = optimisedActivities[optimisedActivities.Count - 1].EET;
                             break;
                         }
-                    }
-
-                    
+                    }       
                 }
             }
             
