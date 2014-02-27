@@ -11,13 +11,13 @@ namespace MyApp
         {
             Project prj = new Project();
             // mock graph
-            Activity A = prj.AddActivity("A", 3, 5);
-            Activity B = prj.AddActivity("B", 5, 7);
-            Activity C = prj.AddActivity("C", 2, 5);
-            Activity D = prj.AddActivity("D", 7, 8);
-            Activity E = prj.AddActivity("E", 9, 10);
-            Activity F = prj.AddActivity("F", 10, 10);
-            Activity G = prj.AddActivity("G", 5, 4);
+            Activity A = prj.AddActivity("A", 3, 5, 300, 500);
+            Activity B = prj.AddActivity("B", 5, 7, 500, 700);
+            Activity C = prj.AddActivity("C", 2, 5, 200, 500);
+            Activity D = prj.AddActivity("D", 7, 8, 700, 800);
+            Activity E = prj.AddActivity("E", 9, 10, 900, 1000);
+            Activity F = prj.AddActivity("F", 10, 12, 1000, 1200);
+            Activity G = prj.AddActivity("G", 5, 7, 500, 700);
             prj.AddRelation(A, B);
             prj.AddRelation(B, C);
             prj.AddRelation(A, D);
@@ -26,12 +26,108 @@ namespace MyApp
             prj.AddRelation(E, G);
             prj.AddRelation(G, F);
             prj.AddRelation(D, F);
+
+
             Console.ReadKey();
         }
 
         static public void CPU_Count(Project project)
         {
-            // jopa
+
+            // first - count with min duration and max costs
+            // second - with max duration and min costs
+
+            bool minDuration = true;
+            string minmaxDuration = "";
+            string minmaxCosts = "";
+            double limDuration = 0;
+            string yno = "";
+            List<List<Activity>> toposorted = new List<List<Activity>>();
+
+            for (int i = 0; i<2; i++)
+            {
+                toposorted.Add(project.TopoSort(setDurationAndCosts(project.Activities, minDuration)));
+                project.CalculateTimeForward(toposorted[i]);
+                double costs = project.sumCosts(toposorted[i]);
+                limDuration = minDuration ? toposorted[i][toposorted.Count - 1].EET : 0;
+
+                minmaxDuration = minDuration ? "minimally" : "maximally";
+                minmaxCosts = minDuration ? "maximal" : "minimal";
+
+                Console.WriteLine("The {0} possible duration of the project with {1} costs is: {2} days and {3} dollars", minmaxDuration, minmaxCosts, toposorted[i][toposorted.Count - 1].EET, costs);
+
+                minDuration = false;
+            }
+
+            
+            while (true)
+            {
+                double duration = toposorted[1][toposorted.Count - 1].EET;
+                Console.WriteLine("Are {0} days acceptable for the project? Enter Y/YES or N/No...", duration);
+                yno = Console.ReadLine();
+
+                if ((yno == "Y") || (yno == "Yes"))
+                {
+                    Console.WriteLine("=====Total result:=====");
+                    Console.WriteLine("Total duration of the project: {0}", duration);
+                    toConsole(toposorted[1]);
+                    break;
+                }
+                else if ((yno == "N") || (yno == "No"))
+                {
+                    double requiredDuration = 0;
+                    while (true)
+                    {
+                        Console.WriteLine("Please enter a required duration: ");
+                        double reqDuration = double.Parse(Console.ReadLine());
+                        if (reqDuration < limDuration)
+                        {
+                            Console.WriteLine("The duration cannot be less than: {0}", limDuration);
+                        }
+                        else if (reqDuration == limDuration)
+                        {
+                            requiredDuration = reqDuration;
+                            Console.WriteLine("=====Total result:=====");
+                            Console.WriteLine("Total duration of the project: {0}", reqDuration);
+                            toConsole(toposorted[0]);
+                            break;
+                        }
+                        else
+                        {
+                            List<Activity> optimizedActivities = optimizeProjectDuration(toposorted[1]);
+                            break;
+                        }
+                    }
+
+                    
+                }
+            }
+            
+
+        }
+
+        static private List<Activity> setDurationAndCosts(List<Activity> activities, bool minDuration = true)
+        {
+            foreach (Activity act in activities)
+            {
+                act.Duration = minDuration? act.DurationMin : act.DurationMax;
+                act.Cost = minDuration? act.CostMax : act.CostMin;
+            }
+            return activities;
+        }
+
+        static public List<Activity> optimizeProjectDuration(List<Activity> toposorted)
+        {
+
+            return null;
+        }
+
+        static public void toConsole(List<Activity> activities)
+        {
+            foreach(Activity act in activities)
+            {
+                Console.WriteLine("Name: {0}; Duration: {1}; Cost: {2}; EST: {3}; EET: {4};", act.Name, act.Duration, act.Cost, act.EST, act.EET);
+            }
         }
     }
 
@@ -53,21 +149,21 @@ namespace MyApp
         }
 
 
-        public Activity AddActivity(string name, double duration = 0, double cost = 0)
+        public Activity AddActivity(string name, double dMin = 0, double dMax = 0, double cMin = 0, double cMax = 0)
         {
             Activity act = new Activity();
             act.Name = name;
-            act.Duration = duration;
-            act.Cost = cost;
+            act.DurationMin = dMin;
+            act.DurationMax = dMax;
+            act.CostMin = cMin;
+            act.CostMax = cMax;
 
+
+            // what with duration and cost?
             Activities.Add(act);
             return act;
         }
-        /*
-        public void DelActivity(Activity act)
-        {
-        }
-        */
+
         public Relation AddRelation(Activity p, Activity s)
         {
             Relation rel = new Relation();
@@ -152,17 +248,17 @@ namespace MyApp
             }
         }
 
-        public List<Activity> TopoSort()
+        public List<Activity> TopoSort(List<Activity> activities)
         {
             checkFirstLastUniqueness();
-            foreach (Activity a in Activities)
+            foreach (Activity a in activities)
             {
                 a.rel_count = 0;
             }
 
             sortedActivities.Clear();
 
-            foreach (Activity a in Activities)
+            foreach (Activity a in activities)
             {
                 if (a.Predecessors.Count == 0)
                     setActivity(a);
@@ -175,17 +271,17 @@ namespace MyApp
             return (double)Relations.Count() / Activities.Count();
         }
 
-        public double Cost()
+        public double sumCosts(List<Activity> activities)
         {
             double cost = 0;
-            foreach (Activity a in Activities)
+            foreach (Activity a in activities)
             {
                 cost += a.Cost;
             }
             return cost;
         }
 
-        private void CalculateTimeForward(List<Activity> toposorted)
+        public void CalculateTimeForward(List<Activity> toposorted)
         {
             // assume that list 'toposorted' is sorted
             toposorted[0].EET = toposorted[0].EST + toposorted[0].Duration;
@@ -202,7 +298,7 @@ namespace MyApp
             }
         }
 
-        private void CalculateTimeBackward(List<Activity> toposorted)
+        public void CalculateTimeBackward(List<Activity> toposorted)
         {
             toposorted[toposorted.Count() - 1].LET = toposorted[toposorted.Count() - 1].EET;
             toposorted[toposorted.Count() - 1].LST = toposorted[toposorted.Count() - 1].LET - toposorted[toposorted.Count() - 1].Duration;
@@ -339,6 +435,13 @@ namespace MyApp
         public double SLK;
         public double FSLK;
         public double MTS;
+
+        // duration, cost - min, max;   
+        public double DurationMin;
+        public double DurationMax;
+        public double CostMin;
+        public double CostMax;
+
 
         public double Cost;
         public int rel_count;
