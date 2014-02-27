@@ -27,7 +27,7 @@ namespace MyApp
             prj.AddRelation(G, F);
             prj.AddRelation(D, F);
 
-
+            CPU_Count(prj);
             Console.ReadKey();
         }
 
@@ -46,21 +46,22 @@ namespace MyApp
 
             for (int i = 0; i<2; i++)
             {
-                toposorted.Add(project.TopoSort(setDurationAndCosts(project.Activities, minDuration)));
+                project = setDurationAndCosts(project, minDuration);
+                toposorted.Add(project.TopoSort(project.Activities));
                 project.CalculateTimeForward(toposorted[i]);
                 double costs = project.sumCosts(toposorted[i]);
-                limDuration = minDuration ? toposorted[i][toposorted.Count - 1].EET : 0;
+                limDuration = minDuration ? toposorted[i][toposorted[i].Count - 1].EET : 0;
 
                 minmaxDuration = minDuration ? "minimally" : "maximally";
                 minmaxCosts = minDuration ? "maximal" : "minimal";
 
-                Console.WriteLine("The {0} possible duration of the project with {1} costs is: {2} days and {3} dollars", minmaxDuration, minmaxCosts, toposorted[i][toposorted.Count - 1].EET, costs);
+                Console.WriteLine("The {0} possible duration of the project with {1} costs is: {2} days and {3} dollars", minmaxDuration, minmaxCosts, toposorted[i][toposorted[i].Count - 1].EET, costs);
 
                 minDuration = false;
             }
 
 
-            double duration = toposorted[1][toposorted.Count - 1].EET;
+            double duration = toposorted[1][toposorted[1].Count - 1].EET;
             List<Activity> optimisedActivities = toposorted[1];
 
             while (true)
@@ -79,6 +80,7 @@ namespace MyApp
                 {
                     while (true)
                     {
+                        Console.WriteLine(limDuration);
                         Console.WriteLine("Please enter a required duration: ");
                         double reqDuration = double.Parse(Console.ReadLine());
                         if (reqDuration < limDuration)
@@ -93,8 +95,9 @@ namespace MyApp
                         }
                         else
                         {
-                            optimisedActivities = optimizeProjectDuration(toposorted[1]);
-                            duration = optimisedActivities[optimisedActivities.Count - 1].EET;
+                            Console.WriteLine("Jopa!");
+                            //optimisedActivities = optimizeProjectDuration(project).Activities;
+                            //duration = optimisedActivities[optimisedActivities.Count - 1].EET;
                             break;
                         }
                     }       
@@ -104,21 +107,46 @@ namespace MyApp
 
         }
 
-        static private List<Activity> setDurationAndCosts(List<Activity> activities, bool minDuration = true)
+        static private Project setDurationAndCosts(Project project, bool minDuration = true)
         {
-            foreach (Activity act in activities)
+            foreach (Activity act in project.Activities)
             {
                 act.Duration = minDuration? act.DurationMin : act.DurationMax;
                 act.Cost = minDuration? act.CostMax : act.CostMin;
             }
-            return activities;
+            return project;
         }
 
-        static public List<Activity> optimizeProjectDuration(List<Activity> toposorted)
+        static public Project optimizeProjectDuration(Project project)
         {
+            List<Activity> toposorted = project.TopoSort(project.Activities);
+            List<Activity> critPoints =  project.determineCritPoints(toposorted); // all critical points - not critical path!
+            double minCU = 0;
+            foreach (Activity crit in critPoints)
+            {
+                crit.CU = (crit.CostMax - crit.CostMin) / (crit.DurationMax - crit.DurationMin);
+                if (minCU>crit.CU)
+                {
+                    minCU = crit.CU;
+                }
+            }
+
+            Activity activityWithMinCU =  findActivityWithMinCU(critPoints, minCU);
+
 
             return null;
         }
+
+        static public Activity findActivityWithMinCU(List<Activity> activities, double minCU)
+        {
+            foreach (Activity act in activities)
+            {
+                if (act.CU == minCU)
+                    return act;
+            }
+            return null;
+        }
+
 
         static public void toConsole(List<Activity> activities)
         {
@@ -317,7 +345,7 @@ namespace MyApp
             }
         }
 
-        public List<Activity> CritPath(List<Activity> toposorted)
+        public List<Activity> determineCritPoints(List<Activity> toposorted)
         {
             CalculateTimeForward(toposorted);
             CalculateTimeBackward(toposorted);
@@ -433,6 +461,7 @@ namespace MyApp
         public double SLK;
         public double FSLK;
         public double MTS;
+        public double CU;
 
         // duration, cost - min, max;   
         public double DurationMin;
