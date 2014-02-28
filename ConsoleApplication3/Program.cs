@@ -66,6 +66,7 @@ namespace MyApp
 
             while (true)
             {
+
                 Console.WriteLine("Are {0} days acceptable for the project? Enter Y/YES or N/No...", duration);
                 yno = Console.ReadLine();
 
@@ -80,7 +81,7 @@ namespace MyApp
                 {
                     while (true)
                     {
-                        Console.WriteLine("Limit is: {0} days", limDuration);
+                        //Console.WriteLine("Limit is: {0} days", limDuration);
                         Console.WriteLine("Please enter a required duration: ");
                         double reqDuration = double.Parse(Console.ReadLine());
                         if (reqDuration < limDuration)
@@ -96,9 +97,9 @@ namespace MyApp
                         else
                         {
                             project = optimizeProjectDuration(project, reqDuration);
-                            optimisedActivities = project.sortedActivities;                            
+                            optimisedActivities = project.sortedActivities;
                             duration = optimisedActivities[optimisedActivities.Count - 1].EET;
-                            Console.WriteLine("NEW duration "+duration);
+
                             break;
                         }
                     }       
@@ -122,9 +123,7 @@ namespace MyApp
         {
             project.TopoSort(project.Activities);
             project.CalculateTimeBackward(project.sortedActivities);
-            Console.WriteLine("------------------------");
-            toConsole(project.determineCritPoints(project.sortedActivities)); // all critical points - not critical path!
-            Console.WriteLine("------------------------");
+            project.determineCritPoints(project.sortedActivities); // all critical points - not critical path!
             
             project.determineCU();
             int d = project.sortedActivities.IndexOf(project.actMinCU);
@@ -134,28 +133,24 @@ namespace MyApp
                 
                 while (true)
                 {
-                    Console.WriteLine("Minimal Duration is: " + project.actMinCU.DurationMin + " Current Duration is " + project.actMinCU.Duration);
-                    project.actMinCU.Duration -= 1;
-                    project.actMinCU.Cost += project.actMinCU.CU;
-
+                    
                     if (project.actMinCU.Duration < project.actMinCU.DurationMin)
                     {
-                        Console.WriteLine("The required duration {0} is unreachable. The minimally possible duration is {1}", reqDuration, project.sortedActivities[project.sortedActivities.Count - 1].EET);
+                        Console.WriteLine("The required duration {0} is unreachable. The minimally possible duration is {1}", reqDuration, project.sortedActivities[project.sortedActivities.Count - 1].EET+1);
+                        project.actMinCU.Duration = project.actMinCU.DurationMax;
+                        project = optimize(project);
                         break;
                     }
-
-                    Console.WriteLine(project.sortedActivities[d].Name+"  is minCU");
-
-                    project = optimize(project);
-
-                    if (project.sortedActivities[project.sortedActivities.Count-1].EET<=reqDuration)
+                    else
                     {
-                        return project;
+                        if (project.sortedActivities[project.sortedActivities.Count - 1].EET <= reqDuration)
+                        {
+                            return project;
+                        }
+                        project.actMinCU.Duration -= 1;
+                        project.actMinCU.Cost += project.actMinCU.CU;
+                        project = optimize(project);
                     }
-                    Console.WriteLine("--//--//--//");
-                    toConsole(project.sortedActivities);
-                    Console.WriteLine("--//--//--//");
-
                 }
             }
             else
@@ -185,7 +180,7 @@ namespace MyApp
                 Console.WriteLine("Name: {0}; Duration: {1}; Cost: {2}; EST: {3}; EET: {4}; LST: {5}; LET: {6}", act.Name, act.Duration, act.Cost, act.EST, act.EET, act.LST, act.LET);
             }
         }
-    }
+    } // -----------------------------------------------------------------
 
     class Project
     {
@@ -408,7 +403,6 @@ namespace MyApp
                 }
 
                 crit.CU = (crit.CostMax - crit.CostMin) / (crit.DurationMax - crit.DurationMin);
-                Console.WriteLine(crit.Name + " " + crit.CU);
                 if (minCU > crit.CU)
                 {
                     minCU = crit.CU;
