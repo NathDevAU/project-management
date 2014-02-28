@@ -14,7 +14,7 @@ namespace MyApp
             Activity A = prj.AddActivity("A", 3, 5, 300, 550);
             Activity B = prj.AddActivity("B", 5, 7, 500, 1000);
             Activity C = prj.AddActivity("C", 2, 5, 200, 680);
-            Activity D = prj.AddActivity("D", 7, 8, 700, 950);
+            Activity D = prj.AddActivity("D", 8, 12, 1600, 2950);
             Activity E = prj.AddActivity("E", 9, 10, 900, 1300);
             Activity F = prj.AddActivity("F", 10, 12, 1000, 1500);
             Activity G = prj.AddActivity("G", 5, 7, 500, 800);
@@ -69,14 +69,14 @@ namespace MyApp
                 Console.WriteLine("Are {0} days acceptable for the project? Enter Y/YES or N/No...", duration);
                 yno = Console.ReadLine();
 
-                if ((yno == "Y") || (yno == "Yes"))
+                if ((yno == "Y") || (yno == "Yes") || (yno == "y") || (yno == "yes"))
                 {
                     Console.WriteLine("=====Total result:=====");
                     Console.WriteLine("Total duration of the project: {0}", duration);
                     toConsole(optimisedActivities);
                     break;
                 }
-                else if ((yno == "N") || (yno == "No"))
+                else if ((yno == "N") || (yno == "No") || (yno == "n") || (yno == "no"))
                 {
                     while (true)
                     {
@@ -96,8 +96,7 @@ namespace MyApp
                         else
                         {
                             project = optimizeProjectDuration(project, reqDuration);
-                            optimisedActivities = project.TopoSort(project.Activities);
-                            
+                            optimisedActivities = project.sortedActivities;                            
                             duration = optimisedActivities[optimisedActivities.Count - 1].EET;
                             Console.WriteLine("NEW duration "+duration);
                             break;
@@ -123,30 +122,41 @@ namespace MyApp
         {
             project.TopoSort(project.Activities);
             project.CalculateTimeBackward(project.sortedActivities);
-            project.determineCritPoints(project.sortedActivities); // all critical points - not critical path!
-            double minCU = double.MaxValue;
-            double duration = 0;
-            foreach (Activity crit in project.critPoints)
-            {
-                crit.CU = (crit.CostMax - crit.CostMin) / (crit.DurationMax - crit.DurationMin);
-                Console.WriteLine(crit.Name+" "+crit.CU);
-                if (minCU>crit.CU)
-                {
-                    minCU = crit.CU;
-                }
-            }
-            Console.WriteLine("MinCU is " + minCU);
-            string name = findNameActivityWithMinCU(project, minCU);
-            int d = findIndexActivityWithMinCU(project, name);
+            Console.WriteLine("------------------------");
+            toConsole(project.determineCritPoints(project.sortedActivities)); // all critical points - not critical path!
+            Console.WriteLine("------------------------");
             
-            if (d > 0)
+            project.determineCU();
+            int d = project.sortedActivities.IndexOf(project.actMinCU);
+         
+            if (d > 0) // delete line
             {
-                Console.WriteLine(project.sortedActivities[d].Name);
-                project.sortedActivities[d].Duration -= 1;
+                
+                while (true)
+                {
+                    Console.WriteLine("Minimal Duration is: " + project.actMinCU.DurationMin + " Current Duration is " + project.actMinCU.Duration);
+                    project.actMinCU.Duration -= 1;
+                    project.actMinCU.Cost += project.actMinCU.CU;
 
-                project.CalculateTimeForward(project.sortedActivities);
-                toConsole(project.sortedActivities);
-                duration = project.sortedActivities[project.sortedActivities.Count - 1].Duration;
+                    if (project.actMinCU.Duration < project.actMinCU.DurationMin)
+                    {
+                        Console.WriteLine("The required duration {0} is unreachable. The minimally possible duration is {1}", reqDuration, project.sortedActivities[project.sortedActivities.Count - 1].EET);
+                        break;
+                    }
+
+                    Console.WriteLine(project.sortedActivities[d].Name+"  is minCU");
+
+                    project = optimize(project);
+
+                    if (project.sortedActivities[project.sortedActivities.Count-1].EET<=reqDuration)
+                    {
+                        return project;
+                    }
+                    Console.WriteLine("--//--//--//");
+                    toConsole(project.sortedActivities);
+                    Console.WriteLine("--//--//--//");
+
+                }
             }
             else
                 Console.WriteLine("impossible");
@@ -154,31 +164,18 @@ namespace MyApp
             return project;
         }
 
-        static public string findNameActivityWithMinCU(Project project, double minCU)
+        static public Project optimize(Project project)
         {
-            for (int i = 0; i < project.critPoints.Count;i++ )
-            {
-                if (project.critPoints[i].CU == minCU)
-                {
-                    Console.WriteLine(project.critPoints[i].Name + " - Name of minCU");
-                    return project.critPoints[i].Name;
-                }
-            }
-            return "";
+            project.setTimesToZero(project.sortedActivities);
+            project.CalculateTimeForward(project.sortedActivities);
+            project.CalculateTimeBackward(project.sortedActivities);
+
+            project.determineCritPoints(project.sortedActivities);
+            project.determineCU();
+            return project;
         }
 
-        static public int findIndexActivityWithMinCU(Project project, string name)
-        {
-            for (int i = 0; i < project.sortedActivities.Count; i++)
-            {
-                if (project.sortedActivities[i].Name == name)
-                {
-                    return i;
-                }
-            }
-            return -1;
 
-        }
 
 
         static public void toConsole(List<Activity> activities)
@@ -196,6 +193,7 @@ namespace MyApp
         public List<Relation> Relations = new List<Relation>();
         public List<Activity> sortedActivities = new List<Activity>();
         public List<Activity> critPoints = new List<Activity>();
+        public Activity actMinCU = new Activity();
 
 
         public List<Activity> CopyActivities(List<Activity> acts)
@@ -339,6 +337,13 @@ namespace MyApp
             return cost;
         }
 
+        public void setTimesToZero(List<Activity> toposorted)
+        {
+            foreach (Activity act in toposorted)
+            {
+                act.EET = act.EST = act.LET = act.LST = 0;
+            }
+        }
         public void CalculateTimeForward(List<Activity> toposorted)
         {
             // assume that list 'toposorted' is sorted
@@ -384,13 +389,34 @@ namespace MyApp
             foreach (Activity act in toposorted)
                 if ((act.EET == act.LET) && (act.EST == act.LST))
                 {
-                    if ((act.Predecessors.Count == 0) || (act.Successors.Count == 0))
-                        continue;
                     critPoints.Add(act);
                 }
             
             return critPoints;
         }
+
+        public void determineCU()
+        {
+            double minCU = double.MaxValue;
+
+            foreach (Activity crit in critPoints)
+            {
+                if ((crit.Predecessors.Count == 0) || (crit.Successors.Count == 0))
+                {
+                    crit.CU = double.MaxValue;
+                    continue;
+                }
+
+                crit.CU = (crit.CostMax - crit.CostMin) / (crit.DurationMax - crit.DurationMin);
+                Console.WriteLine(crit.Name + " " + crit.CU);
+                if (minCU > crit.CU)
+                {
+                    minCU = crit.CU;
+                    actMinCU = crit;
+                }
+            }
+        }
+
 
         public string AnyCPM(List<Activity> cpm, int i = 0)
         {
