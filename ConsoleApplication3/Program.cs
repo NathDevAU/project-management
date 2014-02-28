@@ -33,6 +33,7 @@ namespace MyApp
 
         static public void CPU_Count(Project project)
         {
+            // result - determines the duration of the project and writes it in Console
 
             // first - count with min duration and max costs
             // second - with max duration and min costs
@@ -60,18 +61,23 @@ namespace MyApp
                 minDuration = false;
             }
 
+            // toposorted[0] is project with calculated minDuration and maxCosts
+            // toposorted[1] is project with calculated maxDuration and minCosts
 
-            double duration = toposorted[1][toposorted[1].Count - 1].EET;
+            double duration = toposorted[1][toposorted[1].Count - 1].EET;  // EET of the last vertex is the project's duration
             List<Activity> optimisedActivities = toposorted[1];
 
             while (true)
             {
+                // asks whether the maxDuration with minCosts is acceptable or not for the current project
+                // the program will repeat asking input, until the input is Yes or No
 
                 Console.WriteLine("Are {0} days acceptable for the project? Enter Y/YES or N/No...", duration);
                 yno = Console.ReadLine();
 
                 if ((yno == "Y") || (yno == "Yes") || (yno == "y") || (yno == "yes"))
                 {
+                    // if yes then write the desired duration in Console
                     Console.WriteLine("=====Total result:=====");
                     Console.WriteLine("Total duration of the project: {0}", duration);
                     toConsole(optimisedActivities);
@@ -81,25 +87,30 @@ namespace MyApp
                 {
                     while (true)
                     {
-                        //Console.WriteLine("Limit is: {0} days", limDuration);
+
+                        //if the input is no - ask to enter the required duration
                         Console.WriteLine("Please enter a required duration: ");
                         double reqDuration = double.Parse(Console.ReadLine());
+
                         if (reqDuration < limDuration)
                         {
+                            // if required duration is less than minDuration (already calculated), then repeat asking
                             Console.WriteLine("The duration cannot be less than: {0}", limDuration);
                         }
                         else if (reqDuration == limDuration)
                         {
+                            // if required duration equals minDuration - write in Console the result 
                             optimisedActivities = toposorted[0];
                             duration = limDuration;
                             break;
                         }
                         else
                         {
-                            project = optimizeProjectDuration(project, reqDuration);
+                            // if required duration is more than minDuration
+                            project = optimizeProjectDuration(project, reqDuration); // try to change the total Duration
                             optimisedActivities = project.sortedActivities;
                             duration = optimisedActivities[optimisedActivities.Count - 1].EET;
-
+                            // write the result in Console
                             break;
                         }
                     }       
@@ -111,6 +122,11 @@ namespace MyApp
 
         static private Project setDurationAndCosts(Project project, bool minDuration = true)
         {
+            // returns a project with calculated duration and costs of each work
+
+            // sets Duration to each activity
+            // if mininal duration is required, than Duration equals minDuration and Costs equals maxCosts
+            // if maximal Duration - vice versa
             foreach (Activity act in project.Activities)
             {
                 act.Duration = minDuration? act.DurationMin : act.DurationMax;
@@ -121,34 +137,40 @@ namespace MyApp
 
         static public Project optimizeProjectDuration(Project project, double reqDuration)
         {
+            // project - a Project
+            // reqDuration - required duration set by user
+            // returns a project with changed Duration of critical Activity (Point) with minimal CU and, as a consequence, with changed Duration of the whole project
+
+            // due to EST & EET is alreay calculated in toposorted[1] it is required only to calculate LST and LET
             project.TopoSort(project.Activities);
-            project.CalculateTimeBackward(project.sortedActivities);
+            project.CalculateTimeBackward(project.sortedActivities); // calculate LET & LST
             project.determineCritPoints(project.sortedActivities); // all critical points - not critical path!
-            
-            project.determineCU();
-            int d = project.sortedActivities.IndexOf(project.actMinCU);
+
+            project.determineCU(); // calculate all CU for all critical Activity and determines an Activity with minimal CU (project.actMinCU)
+            int d = project.sortedActivities.IndexOf(project.actMinCU); //  determines the index of an Activity with minCU -- needs to be deleted
          
             if (d > 0) // delete line
             {
                 
                 while (true)
                 {
-                    
+                    // stops when the solution is found or the duration of actMinCU (critical Activity with minimal CU) is less than its minimal Duration
                     if (project.actMinCU.Duration < project.actMinCU.DurationMin)
-                    {
+                    {  
                         Console.WriteLine("The required duration {0} is unreachable. The minimally possible duration is {1}", reqDuration, project.sortedActivities[project.sortedActivities.Count - 1].EET+1);
-                        project.actMinCU.Duration = project.actMinCU.DurationMax;
-                        project = optimize(project);
+                        project.actMinCU.Duration = project.actMinCU.DurationMax; // set the actMinCU to the previous maximal Duration in order to start over
+                        project = optimize(project); // see the comments on optimize()
                         break;
                     }
                     else
                     {
                         if (project.sortedActivities[project.sortedActivities.Count - 1].EET <= reqDuration)
                         {
+                            // if the duration of a project is less than or equals a required duration, than the solution is found
                             return project;
                         }
-                        project.actMinCU.Duration -= 1;
-                        project.actMinCU.Cost += project.actMinCU.CU;
+                        project.actMinCU.Duration -= 1; // subtract 1 unit of actMinCU's Duration 
+                        project.actMinCU.Cost += project.actMinCU.CU; // actMinCu's Cost increases as its duration decreases. CU - is derivative - the speed of increasing
                         project = optimize(project);
                     }
                 }
@@ -161,7 +183,9 @@ namespace MyApp
 
         static public Project optimize(Project project)
         {
-            project.setTimesToZero(project.sortedActivities);
+            //returns a project with calculated EST, EET, LST, LET of each activity
+
+            project.setTimesToZero(project.sortedActivities); 
             project.CalculateTimeForward(project.sortedActivities);
             project.CalculateTimeBackward(project.sortedActivities);
 
@@ -334,6 +358,7 @@ namespace MyApp
 
         public void setTimesToZero(List<Activity> toposorted)
         {
+            // sets all EET, EST, LET, LST to zero
             foreach (Activity act in toposorted)
             {
                 act.EET = act.EST = act.LET = act.LST = 0;
@@ -392,6 +417,8 @@ namespace MyApp
 
         public void determineCU()
         {
+            // calculcates CU for all critical Activities of a project
+            // determines an Activity with minimal CU
             double minCU = double.MaxValue;
 
             foreach (Activity crit in critPoints)
