@@ -182,16 +182,11 @@ namespace MyApp
                     break;
                 if ((project.actMinCU.Duration > project.actMinCU.DurationMin) && (project.actMinCU.Cost < project.actMinCU.CostMax))
                 {
-                    Console.WriteLine("actMinCU is " + project.actMinCU.Name);
-                    Console.WriteLine("Duration is " + project.sortedActivities[project.sortedActivities.Count - 1].EET);
+                    if ((project.actMinCU.Duration != project.actMinCU.DurationMin) && (project.actMinCU.Cost != project.actMinCU.CostMax)){
+                        project.actMinCU.Duration -= 1;
+                        project.actMinCU.Cost += project.actMinCU.CU;
+                    }
                     project = optimize(project);
-                    project.actMinCU.Duration -= 1;
-                    project.actMinCU.Cost += project.actMinCU.CU;
-                }
-                if ((project.actMinCU.Duration == project.actMinCU.DurationMin) && (project.actMinCU.Cost == project.actMinCU.CostMax))
-                {
-                    project = optimize(project);
-
                 }
             }
 
